@@ -101,6 +101,9 @@ import cv2
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
+prev_x = 0
+prev_y = 0
+alpha = 0.2
 
 # Use the new MediaPipe API
 BaseOptions = mp.tasks.BaseOptions
@@ -144,12 +147,25 @@ with HandLandmarker.create_from_options(options) as landmarker:
                 for id, landmark in enumerate(hand):
                     x = int(landmark.x * frame.shape[1])
                     y = int(landmark.y * frame.shape[0])
-
+                    
             # draw point
                     cv2.circle(frame, (x, y), 5, (0, 255, 0), -1)
+                    # Normalize to robot range (-1 to +1)
 
+                    norm_x = (x / 640) * 2 - 1
+                    norm_y = -((y / 480) * 2 - 1)
+                    smooth_x = alpha * norm_x + (1 - alpha) * prev_x
+                    smooth_y = alpha * norm_y + (1 - alpha) * prev_y
+
+                    prev_x = smooth_x
+                    prev_y = smooth_y
             # Step 4: print coordinates
-                    print("ID:", id, "X:", x, "Y:", y)
+                    # print("ID:", id, "X:", x, "Y:", y)
+                    print("ID:", id,
+                          "Raw:", round(norm_x,2), round(norm_y,2),
+                          "Smooth:", round(smooth_x,2), round(smooth_y,2))
+
+
 
             cv2.imshow("Video Feed", frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
